@@ -68,13 +68,11 @@ session so it can discover the Bootstrap Skill, then ask:
 
 > Use SkillRoster to inspect my local Skills and explain evidence-backed problems worth reviewing. If there is no clear cleanup work, say I can keep the current setup. Analyze first; preview a Plan after I choose a goal, and change Agent files only after I approve the complete Plan.
 
-Public installs currently deliver **CLI v1.8.45 / Bootstrap 1.8.29**. This source
-candidate is **CLI v1.8.46 / Bootstrap 1.8.50**, with clearer report outcomes,
-integration checks, and user choices; it has not been released. The ordinary-task
-fallback and Claude native visibility described above also require the candidate.
-On the candidate, `skillroster setup --check --json` inspects integration without
-creating a Plan. See the [installation guide](docs/installation.md) for the
-version and release boundaries.
+Public installs currently deliver **CLI v1.8.46 / Bootstrap 1.8.50**, including
+clearer report outcomes, integration checks, ordinary-task fallback, and Claude
+native visibility. `skillroster setup --check --json` inspects integration without
+creating a Plan. Existing users update the CLI and optional Bootstrap separately;
+see the [installation guide](docs/installation.md) for the steps.
 
 [Windows, Cargo, and release archives](docs/installation.md) · [Upgrade and verify the executable your agent uses](docs/installation.md#upgrade-and-verify-the-executable-your-agent-uses)
 
@@ -190,10 +188,10 @@ instead of pretending the adapters are interchangeable.
 
 ## Project status
 
-The current public release is **v1.8.45**. The local governance loop covers discovery, reporting, search, planning, Apply/Undo, recovery, and eight direct Agent adapters. Published artifacts and controlled acceptance are documented separately from independent-user evidence.
+The current public release is **v1.8.46**. The local governance loop covers discovery, reporting, search, planning, Apply/Undo, recovery, and eight direct Agent adapters. Published artifacts and controlled acceptance are documented separately from independent-user evidence.
 
 - [Latest release](https://github.com/tt-a1i/skillroster/releases/latest)
-- [v1.8.45 release and platform evidence](docs/acceptance/release-v1.8.45-candidate.md)
+- [v1.8.46 release and platform evidence](docs/acceptance/release-v1.8.46.md)
 - [Acceptance ledger](docs/acceptance.md)
 - [Product brief](docs/product-brief.md)
 - [Canonical vocabulary](CONTEXT.md)

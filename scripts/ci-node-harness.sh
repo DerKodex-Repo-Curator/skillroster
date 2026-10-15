@@ -8,7 +8,8 @@ node --check tests/harness/byte-ledger/ledger.mjs
 node --check scripts/byte-ledger.mjs
 node --check scripts/recommendation-pilot.mjs
 node --check tests/harness/roster-recommendation-pilot/pilot.mjs
-node --experimental-strip-types --check tests/harness/pi-cold-routing/gate.ts
+# gate.test.mjs imports gate.ts below, checking and exercising its TypeScript.
+# Newer Node releases parse --check inputs as JavaScript even with strip-types.
 node --test \
   tests/harness/pi-cold-routing/*.test.mjs \
   tests/harness/codex-cold-routing/*.test.mjs \

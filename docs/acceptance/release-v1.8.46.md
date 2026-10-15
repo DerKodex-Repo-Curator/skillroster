@@ -64,14 +64,32 @@ prefix also passed all four scenarios and reported CLI 1.8.46 / Bootstrap 1.8.50
 
 ## Homebrew
 
-[Tap PR #21](https://github.com/tt-a1i/homebrew-skillroster/pull/21) prepares the
+[Tap PR #21](https://github.com/tt-a1i/homebrew-skillroster/pull/21) prepared the
 v1.8.46 Formula at `cb765eec1133ca389f67e290b16b512eade7dbc0`.
-The source archive SHA-256 is
-`bf4ac02bc8497f03bf5c2c2b863248d50342b2e35990cb3aeb591a59d1c662f6`.
 The [test-bot run](https://github.com/tt-a1i/homebrew-skillroster/actions/runs/38704579468)
-checks macOS and Linux builds, installation, and runtime behavior. Bottle
-publication is pending; the GitHub binary Release alone does not establish
-that the Homebrew tap has updated.
+passed macOS and Linux builds, installation, style, and runtime tests.
+The [SHA-guarded pr-pull workflow](https://github.com/tt-a1i/homebrew-skillroster/actions/runs/38705809727)
+ran from tap main `7107873827cd3ea8e1ec2a2dd93172b478d60371` with that exact
+PR head. It published the bottles and closed the PR without a normal merge
+commit, advancing tap main through Formula commit
+`89bc0b7e3970df8f7765cdb15acf53a64021ed3c` and bottle commit
+`617e78e7460f74153cefa97bbeef6fba78869e2a`.
+
+The Formula source archive SHA-256 is
+`bf4ac02bc8497f03bf5c2c2b863248d50342b2e35990cb3aeb591a59d1c662f6`.
+The public [bottle release](https://github.com/tt-a1i/homebrew-skillroster/releases/tag/skillroster-1.8.46)
+contains:
+
+| Bottle | SHA-256 |
+| --- | --- |
+| `arm64_tahoe` | `b8909705896613a920b45306be7546d73e086fd519ff10e0d7136de8ea718a6d` |
+| `x86_64_linux` | `62a1d58ecfbe892423adee25c8eb3040f631bced9a70c990d06cab3bd3835d20` |
+
+Both bottles were downloaded without authentication and matched the public
+Formula and GitHub asset digests. The extracted macOS ARM bottle passed the
+release governance smoke and all four first-use scenarios. Linux installation
+and execution evidence comes from test-bot; the Linux bottle was not executed
+on the local macOS host. No user Homebrew package was installed or upgraded.
 
 ## Boundaries
 

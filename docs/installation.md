@@ -4,7 +4,7 @@ SkillRoster stores inventory, evidence, plans, receipts, and configuration on
 the local machine. Installation does not connect it to a hosted service or
 upload Skill contents or agent session history.
 
-The current public release is **v1.8.45**. Its Formula, annotated tag, four
+The current public release is **v1.8.46**. Its Formula, annotated tag, four
 platform archives, and adjacent checksums are public.
 
 WSL users need WSL2 and should use the Linux archive. WSL1 lacks the atomic
@@ -34,7 +34,7 @@ On macOS or Linux, the archive contains a versioned directory. Extract it and
 install the binary from that directory (not from the current directory):
 
 ```sh
-SKILLROSTER_VERSION=1.8.45
+SKILLROSTER_VERSION=1.8.46
 SKILLROSTER_TARGET=aarch64-apple-darwin # choose from the table above
 tar -xzf "skillroster-${SKILLROSTER_VERSION}-${SKILLROSTER_TARGET}.tar.gz"
 mkdir -p "$HOME/.local/bin"
@@ -59,7 +59,7 @@ Rust 1.85 or newer is required. For an immutable release tag:
 
 ```sh
 cargo install --locked --git https://github.com/tt-a1i/skillroster.git \
-  --tag v1.8.45 skillroster
+  --tag v1.8.46 skillroster
 ```
 
 For a local checkout, run `cargo install --locked --path .`. Confirm the
@@ -132,22 +132,21 @@ The CLI is independently usable after installation. Bootstrap is an optional
 integration that teaches an Agent the CLI workflow. `ready` in Home describes
 the local inspection workflow, not whether the running Agent loaded this Skill.
 
-Source candidate v1.8.46 adds `skillroster setup --check --json` and Home's
+Published v1.8.46 adds `skillroster setup --check --json` and Home's
 `agent_integration`: both inspect local package status without saving a Plan.
-The public v1.8.45 package does not have this check; use its existing Setup
-preview below. New report outcomes, native Claude visibility, Finding decision
-facts, and the revised ordinary-task/governance instructions await the next
-release. Do not use a source candidate's behavior as public-release evidence.
+This release also includes new report outcomes, native Claude visibility,
+Finding decision facts, and the revised ordinary-task/governance instructions.
 
 After installing a new CLI version, refresh the local Snapshot and inspect all
 detected bootstrap targets:
 
 ```sh
 skillroster scan --summary --json
+skillroster setup --check --json
 skillroster setup --json
 ```
 
-Published CLI v1.8.45 bundles Bootstrap content version 1.8.29.
+Published CLI v1.8.46 bundles Bootstrap content version 1.8.50.
 The source tree is **v1.8.46**.
 Its bundled Bootstrap content version is 1.8.50. CLI and Bootstrap versions can
 differ intentionally when CLI behavior changes without changing the Bootstrap
@@ -167,7 +166,7 @@ skillroster apply <plan-id> --json
 ```
 
 Verify the Receipt, rescan when requested, and open a new Agent session to load
-the Skill. Candidate users can rerun `setup --check --json` to verify local
+the Skill. Rerun `setup --check --json` to verify local
 package status. A current file does not prove activation in a running session.
 Exact official older copies are upgraded through the same reversible Plan/Receipt
 path as first installation. If setup reports `modified_choice_required`, ask

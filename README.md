@@ -65,7 +65,7 @@ skillroster report
 
 > 使用 SkillRoster 检查我电脑上的 Skills，解释有证据支持、值得处理的问题。没有明确整理项就告诉我可以保持现状。先做分析，我选择整理目标后再预览方案，确认完整 Plan 后才修改 Agent 文件。
 
-当前公开安装得到 CLI **v1.8.45 / Bootstrap 1.8.29**。本源码候选为 CLI **v1.8.46 / Bootstrap 1.8.50**，新增摘要终点、接入状态检查和更明确的用户选择指引，尚未发布。前文的普通任务回退、Claude 原生可见性说明也属于候选版本；公开包暂不具备这些改进。候选版可用 `skillroster setup --check --json` 只查接入状态，不创建 Plan。版本和发布边界见[安装指南](docs/installation.md)。
+当前公开安装得到 CLI **v1.8.46 / Bootstrap 1.8.50**，包含摘要终点、接入状态检查、普通任务回退和 Claude 原生可见性说明。可用 `skillroster setup --check --json` 只查接入状态，不创建 Plan。已有用户需要分别更新 CLI 和可选的 Bootstrap；具体步骤见[安装指南](docs/installation.md)。
 
 [Windows、Cargo 和 Release 安装方式](docs/installation.md) · [升级并确认 Agent 使用的可执行文件](docs/installation.md#upgrade-and-verify-the-executable-your-agent-uses)
 
@@ -172,10 +172,10 @@ SkillRoster 会报告这些边界，不会假设所有 Adapter 都一样。
 
 ## 项目状态
 
-当前公开版本为 **v1.8.45**，已覆盖发现、报告、检索、规划、Apply/Undo、恢复和 8 个直接 Agent Adapter。发布产物、受控验收与独立用户使用证据分别记录。
+当前公开版本为 **v1.8.46**，已覆盖发现、报告、检索、规划、Apply/Undo、恢复和 8 个直接 Agent Adapter。发布产物、受控验收与独立用户使用证据分别记录。
 
 - [最新版本](https://github.com/tt-a1i/skillroster/releases/latest)
-- [v1.8.45 发布与平台证据](docs/acceptance/release-v1.8.45-candidate.md)
+- [v1.8.46 发布与平台证据](docs/acceptance/release-v1.8.46.md)
 - [验收记录](docs/acceptance.md)
 - [产品简介](docs/product-brief.md)
 - [统一术语](CONTEXT.md)

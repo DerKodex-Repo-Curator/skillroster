@@ -54,16 +54,18 @@ brew install tt-a1i/skillroster/skillroster
 skillroster --version
 ```
 
-然后把这段话交给你的 Agent：
-
-> 使用 SkillRoster 检查我电脑上的 Skills。先解释最值得处理的三个问题和对应证据，再给我一份可以审阅的整理方案。在我确认完整 Plan 之前，不要修改 Agent 文件。
-
-第一步只做检查。你也可以直接在终端查看：
+CLI 安装完成即可直接检查，Bootstrap 接入是可选步骤：
 
 ```bash
 skillroster scan --summary
 skillroster report
 ```
+
+通过 Agent 使用时，先运行 `skillroster setup --json`，查看它检测到的 Agent、目标文件和 Plan。确认这些目标后，再执行 `skillroster apply <plan-id> --json`；命令中的 ID 使用刚刚返回的值。重新打开 Agent 会话，让它发现引导 Skill，然后可以这样说：
+
+> 使用 SkillRoster 检查我电脑上的 Skills，解释有证据支持、值得处理的问题。没有明确整理项就告诉我可以保持现状。先做分析，我选择整理目标后再预览方案，确认完整 Plan 后才修改 Agent 文件。
+
+当前公开安装得到 CLI **v1.8.45 / Bootstrap 1.8.29**。本源码候选为 CLI **v1.8.46 / Bootstrap 1.8.50**，新增摘要终点、接入状态检查和更明确的用户选择指引，尚未发布。前文的普通任务回退、Claude 原生可见性说明也属于候选版本；公开包暂不具备这些改进。候选版可用 `skillroster setup --check --json` 只查接入状态，不创建 Plan。版本和发布边界见[安装指南](docs/installation.md)。
 
 [Windows、Cargo 和 Release 安装方式](docs/installation.md) · [升级并确认 Agent 使用的可执行文件](docs/installation.md#upgrade-and-verify-the-executable-your-agent-uses)
 

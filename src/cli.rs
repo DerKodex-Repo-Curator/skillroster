@@ -257,6 +257,9 @@ pub enum ModifiedBootstrapChoice {
 
 #[derive(Debug, Args)]
 pub struct SetupArgs {
+    /// Inspect detected Bootstrap targets without creating a Plan.
+    #[arg(long, conflicts_with = "modified_choice")]
+    pub check: bool,
     /// Decide how setup handles locally modified bootstrap Skill files.
     #[arg(long, value_enum)]
     pub modified_choice: Option<ModifiedBootstrapChoice>,

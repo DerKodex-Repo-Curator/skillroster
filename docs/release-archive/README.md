@@ -17,6 +17,16 @@ SkillRoster is local-only. It has no daemon, cloud service, or telemetry. Review
 every Plan before Apply; successful changes return a Receipt and can be undone
 through the recorded Receipt boundary.
 
+## First use
+
+Run `skillroster scan --summary`, then `skillroster report` for a read-only
+inspection. Agent integration is optional: `skillroster setup --check --json`
+shows detected targets and both the CLI and bundled Bootstrap content versions
+without creating a Plan. `skillroster setup --json` prepares an installation or
+upgrade Plan for those targets. Review every Agent and file before applying the
+returned Plan ID, verify its Receipt, and restart the Agent session to load the
+Skill. A local current Bootstrap is distinct from a running session loading it.
+
 ## 中文
 
 这是一个不可变的 SkillRoster 平台发布包，包含对应平台的二进制文件、本说明和

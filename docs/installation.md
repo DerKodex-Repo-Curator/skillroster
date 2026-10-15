@@ -128,6 +128,17 @@ files; Bootstrap upgrades still require the reviewed Setup Plan below.
 
 ## Install or upgrade the Agent bootstrap Skill
 
+The CLI is independently usable after installation. Bootstrap is an optional
+integration that teaches an Agent the CLI workflow. `ready` in Home describes
+the local inspection workflow, not whether the running Agent loaded this Skill.
+
+Source candidate v1.8.46 adds `skillroster setup --check --json` and Home's
+`agent_integration`: both inspect local package status without saving a Plan.
+The public v1.8.45 package does not have this check; use its existing Setup
+preview below. New report outcomes, native Claude visibility, Finding decision
+facts, and the revised ordinary-task/governance instructions await the next
+release. Do not use a source candidate's behavior as public-release evidence.
+
 After installing a new CLI version, refresh the local Snapshot and inspect all
 detected bootstrap targets:
 
@@ -137,8 +148,8 @@ skillroster setup --json
 ```
 
 Published CLI v1.8.45 bundles Bootstrap content version 1.8.29.
-The source tree is **v1.8.45**.
-Its bundled Bootstrap content version is 1.8.49. CLI and Bootstrap versions can
+The source tree is **v1.8.46**.
+Its bundled Bootstrap content version is 1.8.50. CLI and Bootstrap versions can
 differ intentionally when CLI behavior changes without changing the Bootstrap
 instructions.
 In Setup JSON, `cli_version` identifies the executable and
@@ -147,8 +158,18 @@ In Setup JSON, `cli_version` identifies the executable and
 `bootstrap_content_version`; a current target's `installed_version` also
 refers to Bootstrap content, not the executable.
 
-`setup` changes no files. Apply its returned Plan only after review. Exact
-official older copies are upgraded through the same reversible Plan/Receipt
+`setup` changes no Agent files, but saves a Plan when changes are available.
+Review every detected Agent and target; detection is not permission to install.
+After approving the complete preview, use its returned ID:
+
+```sh
+skillroster apply <plan-id> --json
+```
+
+Verify the Receipt, rescan when requested, and open a new Agent session to load
+the Skill. Candidate users can rerun `setup --check --json` to verify local
+package status. A current file does not prove activation in a running session.
+Exact official older copies are upgraded through the same reversible Plan/Receipt
 path as first installation. If setup reports `modified_choice_required`, ask
 the user whether to retain the local copy or adopt the current bundled copy;
 never infer the choice. `unsupported_targets` means links, non-files, or

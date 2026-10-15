@@ -98,6 +98,8 @@ try {
     if ($ExpectedReadmeHash -ne $BundledReadmeHash) {
         throw "Release archive README differs from the version-neutral source"
     }
+    python scripts/release/first-use.py (Join-Path (Join-Path $VerifyRoot $Name) "skillroster.exe")
+    if ($LASTEXITCODE -ne 0) { throw "Archived binary failed first-use acceptance" }
 }
 finally {
     if (Test-Path -LiteralPath $VerifyRoot) {

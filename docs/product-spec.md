@@ -532,12 +532,16 @@ and supported next steps by their affected Agent IDs. Every group remains an
 explicit Agent-to-fact mapping; callers do not infer one Agent's boundary from
 another Agent's state.
 
-Selector-free `report --json` returns the bounded three-Finding Summary view;
+Selector-free `report --json` returns a bounded Summary with up to three non-informational Findings;
 `--summary` is an explicit alias. The exhaustive diagnostic report requires
 top-level `report --full --json`. Each selected Summary Finding has a bounded,
 read-only `view_finding` suggested action bound to its stable ID. When the
-Snapshot has more Findings than the Summary, `list_findings` remains the first
-action for pagination and the direct drilldowns follow in Summary order.
+Snapshot has more Findings than the Summary, the direct drilldowns follow Summary order, with optional `list_findings`
+pagination afterwards. Array order is not semantic priority or authorization.
+The additive `overview` reports `inventory_empty`, `no_review_items`, or
+`review_available`, counts informational/review Findings, and scopes the result
+to known and explicit Skill roots. All informational Findings remain in full
+and paged views. Unknown usage never establishes that a Skill is unused.
 
 `report --finding ID --json` returns compact paged Evidence items by default.
 Each item contains the Evidence ID, subject, path, quality, and decision facts;
@@ -575,7 +579,7 @@ then present:
 
 1. a one-sentence diagnosis;
 2. independent Skill count, placement count, default exposure, and observed-use count;
-3. the three most important Findings plus compact rollups that state the complete scale of every Finding group without loading the exhaustive report;
+3. up to three review Findings (none when only informational context remains) plus compact rollups that state the complete scale of every Finding group without loading the exhaustive report;
 4. prioritized recommendations with current affected scale; measurable
    before/after impact only when a validated Plan provides it;
 5. uncertainties, evidence quality, and safety risks;

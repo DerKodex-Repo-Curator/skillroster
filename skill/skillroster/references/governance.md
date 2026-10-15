@@ -6,7 +6,12 @@ Run `skillroster scan --summary --json`, then the bounded
 `skillroster report --json`. Use full `scan --json` only for deliberate root or
 coverage diagnostics.
 Use `finding_rollups` for group scale and the selected Findings for the first
-decisions. Use `report --findings --limit 20 --json`, optionally narrowed by
+decisions. Read `overview.state`: `inventory_empty` means no Skills were found
+in the checked roots; `no_review_items` means only informational Findings remain.
+In either case, finish the inspection with its scope and usage limits and offer
+to keep the current setup. Show at most three relevant review items, never fill
+empty slots with unknown usage or archive status. Informational Findings remain
+available through `report --findings --limit 20 --json`, optionally narrowed by
 category or severity, only when enumeration is needed. Follow `page.next_offset`
 while that decision remains open. Reserve `report --full` for deliberate
 exhaustive export; do not make extra calls just to satisfy a fixed presentation
@@ -42,6 +47,16 @@ with the user; use the existing `protected_skill_ids` for their choices. Keeping
 the current Roster is a valid outcome when the evidence is insufficient.
 
 ## Plan
+
+First bind the proposal to the user's goal. A request to inspect ends with the
+findings; it does not create a governance Plan. A request to deduplicate copies
+stays a Library change and preserves default exposure. Reducing the default
+Roster is a separate choice. When that is the goal and positive usage evidence
+is absent, ask which capabilities must stay available for upcoming work before
+using a Core budget or fallback ordering. Fifty is a supported budget ceiling,
+not a recommendation. If the user prefers the current Roster, finish there.
+An explicitly requested name-ordered draft may be previewed, with its fallback
+basis stated plainly and no claim of better usefulness.
 
 Make semantic choices in conversation, then submit them to
 `skillroster plan --stdin --json`. Every declarative request includes
@@ -119,6 +134,15 @@ each page's exact confirmation actions cover its `page_observed_link_targets`.
 Never infer a parent, sibling, descendant, alias, or wildcard.
 
 ## Present
+
+For an exact-duplicate proposal, explain the selected Skill by name: which
+copies match, which exact source the user chose to retain (or host), which paths
+become links, which Agents keep the same exposure, and how the Receipt enables
+Undo. Use the validated Plan's `impact.items` and totals for these facts. Show
+the bounded paths first; open full Plan detail if a needed path is omitted.
+Offer previewing that choice and keeping the current setup. Same-name variants
+with different content still require their own explicit choice; candidate or
+action array order never chooses a source or expresses business priority.
 
 Present a compact, evidence-backed first view using the report's available
 metrics, selected Findings, rollups, and typed safety facts. Include

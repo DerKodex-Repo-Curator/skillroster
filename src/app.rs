@@ -131,7 +131,18 @@ fn run_with_context(cli: Cli, action_context: &ActionContext) -> Result<Output> 
         None => {
             let readiness = readiness_decision(&store, &state_dir)?;
             let actions = readiness.actions.clone();
-            let result = home_result(&readiness);
+            let mut result = home_result(&readiness);
+            result["agent_integration"] = if readiness.snapshot_state == SnapshotState::Current {
+                match setup_command(&store, &home, &state_dir, None, true) {
+                    Ok(inspection) => inspection,
+                    Err(error) => {
+                        json!({"state": "inspection_unavailable", "detail": error.to_string()})
+                    }
+                }
+            } else {
+                json!({"state": "scan_required"})
+            };
+            result["agent_integration"]["optional"] = json!(true);
             ("home", result, vec![], actions)
         }
         Some(Command::Status) => {
@@ -443,7 +454,8 @@ fn run_with_context(cli: Cli, action_context: &ActionContext) -> Result<Output> 
             LifecycleCommand::Delete(_) => unreachable!("handled before opening SQLite"),
         },
         Some(Command::Setup(args)) => {
-            let result = setup_command(&store, &home, &state_dir, args.modified_choice)?;
+            let result =
+                setup_command(&store, &home, &state_dir, args.modified_choice, args.check)?;
             let mut actions = Vec::new();
             if result["state"].as_str() == Some("scan_required") {
                 actions.push(action(
@@ -476,6 +488,14 @@ fn run_with_context(cli: Cli, action_context: &ActionContext) -> Result<Output> 
                     true,
                     true,
                     "setup_plan_ready",
+                ));
+            } else if result["state"] == "setup_available" {
+                actions.push(action(
+                    "preview_setup",
+                    &["setup", "--json"],
+                    false,
+                    false,
+                    "optional_agent_integration_available",
                 ));
             }
             ("setup", result, vec![], actions)
@@ -548,7 +568,8 @@ fn owned_source_confirmation_temp_name(name: &std::ffi::OsStr) -> bool {
 
 fn command_requires_exclusive_state_lock(command: Option<&Command>) -> bool {
     match command {
-        Some(Command::Scan(_) | Command::Apply(_) | Command::Undo(_) | Command::Setup(_)) => true,
+        Some(Command::Scan(_) | Command::Apply(_) | Command::Undo(_)) => true,
+        Some(Command::Setup(args)) => !args.check,
         Some(Command::Report(args)) => args.finding.is_none(),
         Some(Command::Plan(args)) => args.show.is_none(),
         Some(Command::SourceRoot(args)) => matches!(
@@ -2499,6 +2520,7 @@ fn report_command(
         if existing.scan_id == scan_id
             && report_supports_source_confirmation_kind(&existing)
             && report_supports_finding_decision_fields(&existing)
+            && existing.summary["overview"].is_object()
             && existing.summary["semantic_overlap_candidates"].is_object()
             && (scan.native_visibility.is_none()
                 || existing.summary["native_visibility"].is_object())
@@ -2604,6 +2626,7 @@ fn report_command(
         "finding_rollups": finding_rollups,
         "category_counts": report.category_counts,
         "semantic_overlap_candidates": report.semantic_overlap_candidates,
+        "overview": report_overview(&scan, &report),
         "files_changed": false
     });
     store.save_report(
@@ -2616,6 +2639,38 @@ fn report_command(
         &findings,
     )?;
     Ok(select_report_view(&value, request))
+}
+
+fn report_overview(scan: &ScanResult, report: &crate::query::Report) -> Value {
+    let review_count = report
+        .findings
+        .iter()
+        .filter(|finding| finding.severity != crate::query::Severity::Info)
+        .count();
+    let roots = scan
+        .roots
+        .iter()
+        .filter(|root| root.kind == RootKind::Skills)
+        .collect::<Vec<_>>();
+    let count = |status| roots.iter().filter(|root| root.status == status).count();
+    let bounded = roots
+        .iter()
+        .filter(|root| root.status == scan::RootStatus::Included && !root.discovery_complete)
+        .count();
+    json!({
+        "state": if review_count > 0 { "review_available" } else if scan.skills.is_empty() { "inventory_empty" } else { "no_review_items" },
+        "review_finding_count": review_count,
+        "informational_finding_count": report.findings.len() - review_count,
+        "skill_roots": {
+            "included": count(scan::RootStatus::Included),
+            "missing": count(scan::RootStatus::Missing),
+            "inaccessible": count(scan::RootStatus::Inaccessible),
+            "excluded": count(scan::RootStatus::Excluded),
+            "bounded": bounded
+        },
+        "scope": "known_and_explicit_skill_roots",
+        "usage_absence_means_unused": false
+    })
 }
 
 fn report_supports_source_confirmation_kind(report: &ReportRecord) -> bool {
@@ -3635,7 +3690,21 @@ fn report_actions(result: &Value, request: ReportRequest<'_>) -> Vec<SuggestedAc
             let total = result["finding_count"].as_u64().unwrap_or_default();
             let findings = result["findings"].as_array();
             let returned = findings.map_or(0, |findings| findings.len() as u64);
-            let mut actions = Vec::new();
+            let mut actions = findings
+                .into_iter()
+                .flatten()
+                .filter_map(|finding| finding["id"].as_str())
+                .take(3)
+                .map(|id| {
+                    action(
+                        "view_finding",
+                        &["report", "--finding", id, "--json"],
+                        false,
+                        false,
+                        "top_finding_selected",
+                    )
+                })
+                .collect::<Vec<_>>();
             if total > returned {
                 let limit = DEFAULT_REPORT_PAGE_LIMIT.to_string();
                 actions.push(action(
@@ -3654,22 +3723,6 @@ fn report_actions(result: &Value, request: ReportRequest<'_>) -> Vec<SuggestedAc
                     "more_findings_available",
                 ));
             }
-            actions.extend(
-                findings
-                    .into_iter()
-                    .flatten()
-                    .filter_map(|finding| finding["id"].as_str())
-                    .take(3)
-                    .map(|id| {
-                        action(
-                            "view_finding",
-                            &["report", "--finding", id, "--json"],
-                            false,
-                            false,
-                            "top_finding_selected",
-                        )
-                    }),
-            );
             actions
         }
         ReportRequest::Findings {
@@ -5086,6 +5139,7 @@ fn compact_report(report: &Value) -> Value {
         .unwrap_or_default();
     let compact_findings = findings
         .iter()
+        .filter(|finding| finding["severity"] != "info")
         .take(3)
         .map(compact_finding_summary)
         .collect::<Vec<_>>();
@@ -5106,6 +5160,7 @@ fn compact_report(report: &Value) -> Value {
         "session_coverage": report["session_coverage"],
         "primary_metrics": report["primary_metrics"],
         "finding_count": findings.len(),
+        "overview": report["overview"],
         "findings": compact_findings,
         "finding_rollups": report_finding_rollups(report),
         "category_counts": report["category_counts"],
@@ -7125,6 +7180,8 @@ fn roster_selection_evidence(
             "agents": agents,
             "absence_of_usage_evidence": "not_negative_evidence",
             "fallback_basis": "name_then_stable_id_not_usefulness",
+            "keep_current_roster_available": true,
+            "core_budget_is_user_choice": true,
             "fallback_review_question": "Which Skills must remain available by default for your upcoming work? Add their exact IDs to protected_skill_ids; keep the current Roster if the evidence is insufficient."
         })
     };
@@ -7981,6 +8038,10 @@ fn normalize_library_plan(
             }
         };
 
+        let mut replacement_paths = Vec::new();
+        if adds_hosted_library_placement {
+            replacement_paths.push(canonical.directory.clone());
+        }
         let mut relinked = usize::from(adds_hosted_library_placement);
         for (physical_source, mut placements) in physical_groups {
             if physical_source == canonical_physical {
@@ -8019,6 +8080,7 @@ fn normalize_library_plan(
                 "expected_source_fingerprint": canonical_fingerprint
             }));
             relinked += placements.len();
+            replacement_paths.push(placement.directory.clone());
         }
         actions.push(json!({
             "skill_id": request.skill_id,
@@ -8034,6 +8096,11 @@ fn normalize_library_plan(
         }));
         impacts.push(json!({
             "skill_id": request.skill_id,
+            "skill_name": skill.name,
+            "affected_agents": all_placements.iter().filter_map(|placement| placement.agent.map(AgentKind::id)).collect::<BTreeSet<_>>(),
+            "replacement_paths": replacement_paths.iter().take(10).collect::<Vec<_>>(),
+            "replacement_path_count": replacement_paths.len(),
+            "replacement_paths_truncated": replacement_paths.len() > 10,
             "before": {
                 "placement_count": before_placement_count,
                 "physical_source_count": before_physical_source_count,
@@ -8782,6 +8849,27 @@ struct BootstrapPackageManifest<'a> {
 
 const LEGACY_COMPLETE_BOOTSTRAP_PACKAGES: &[BootstrapPackageManifest<'static>] = &[
     BootstrapPackageManifest {
+        version: "1.8.49",
+        file_digests: &[
+            (
+                "SKILL.md",
+                "03dc9acfc37a979d1517640959fdf1572f55e673cd1f4884adc86a5f7223810a",
+            ),
+            (
+                "references/routing.md",
+                "58bd0140cf31ebf89b7ffbc9d0d6f5013096897e666c436b8bf703ce45abd3cf",
+            ),
+            (
+                "references/governance.md",
+                "ad540ca44ea39e386e1a8e4504dcb574ca6bf1baa4ff35f441ea4eac382952f9",
+            ),
+            (
+                "references/mutation.md",
+                "b6614b2e0c52f1b84df1562462810b0fdfe03fabac0da75f8bde26693bb43589",
+            ),
+        ],
+    },
+    BootstrapPackageManifest {
         version: "1.8.23",
         file_digests: &[
             (
@@ -9002,6 +9090,7 @@ fn setup_command(
     home: &Path,
     state_dir: &Path,
     modified_choice: Option<ModifiedBootstrapChoice>,
+    check: bool,
 ) -> Result<Value> {
     setup_command_with_manifests(
         store,
@@ -9009,6 +9098,7 @@ fn setup_command(
         state_dir,
         modified_choice,
         LEGACY_COMPLETE_BOOTSTRAP_PACKAGES,
+        check,
     )
 }
 
@@ -9018,6 +9108,7 @@ fn setup_command_with_manifests<'a>(
     state_dir: &Path,
     modified_choice: Option<ModifiedBootstrapChoice>,
     legacy_complete_packages: &'a [BootstrapPackageManifest<'a>],
+    check: bool,
 ) -> Result<Value> {
     let bootstrap_content_version = content_version()
         .context("bundled Bootstrap Skill is missing metadata.bootstrap-version")?;
@@ -9125,11 +9216,17 @@ fn setup_command_with_manifests<'a>(
             let observed_files = current_package
                 .iter()
                 .map(|(relative_path, current_digest, _)| {
-                    let (status, digest) = bootstrap_file_status(
-                        relative_path,
-                        &directory.join(relative_path),
-                        current_digest,
-                    );
+                    let (status, digest) = if directory_is_unsupported
+                        || (references_are_unsupported && relative_path.starts_with("references/"))
+                    {
+                        (BootstrapFileStatus::Unsupported, None)
+                    } else {
+                        bootstrap_file_status(
+                            relative_path,
+                            &directory.join(relative_path),
+                            current_digest,
+                        )
+                    };
                     (*relative_path, status, digest)
                 })
                 .collect::<Vec<_>>();
@@ -9181,7 +9278,7 @@ fn setup_command_with_manifests<'a>(
                 || package_status == "official_outdated"
                 || (package_status == "modified"
                     && matches!(modified_choice, Some(ModifiedBootstrapChoice::AdoptCurrent)));
-            if should_install {
+            if should_install && !check {
                 planned_agents.insert(agent.id().to_owned());
                 if root_missing {
                     let mut missing_directories = Vec::new();
@@ -9295,6 +9392,22 @@ fn setup_command_with_manifests<'a>(
         "canonical_deletion_count": 0,
         "files_changed": false
     });
+    if check {
+        let mut result = base;
+        result["plan_id"] = Value::Null;
+        result["state"] = json!(if unsupported_count > 0 {
+            "unsupported_targets"
+        } else if modified_count > 0 {
+            "modified_choice_required"
+        } else if missing_count + outdated_count > 0 {
+            "setup_available"
+        } else if current_count > 0 {
+            "up_to_date"
+        } else {
+            "no_supported_agent"
+        });
+        return Ok(result);
+    }
     if unsupported_count > 0 {
         let mut result = base;
         result["plan_id"] = Value::Null;
@@ -12523,7 +12636,8 @@ mod recovery_tests {
         scan_command(&store, &home, &state, Vec::new(), Vec::new(), false).unwrap();
 
         std::fs::write(package.join(current[1].0), &current[1].2).unwrap();
-        let mixed = setup_command_with_manifests(&store, &home, &state, None, &manifests).unwrap();
+        let mixed =
+            setup_command_with_manifests(&store, &home, &state, None, &manifests, false).unwrap();
         assert_eq!(mixed["state"], "modified_choice_required");
         assert_eq!(mixed["outdated_count"], 0);
         std::fs::write(package.join(current[1].0), &previous[1]).unwrap();
@@ -12533,7 +12647,7 @@ mod recovery_tests {
             file_digests: &previous_files[..3],
         }];
         let incomplete =
-            setup_command_with_manifests(&store, &home, &state, None, &incomplete_manifests)
+            setup_command_with_manifests(&store, &home, &state, None, &incomplete_manifests, false)
                 .unwrap();
         assert_eq!(incomplete["state"], "modified_choice_required");
 
@@ -12547,13 +12661,19 @@ mod recovery_tests {
             version: "duplicate-path-fixture",
             file_digests: &duplicate_path_files,
         }];
-        let duplicate_path =
-            setup_command_with_manifests(&store, &home, &state, None, &duplicate_path_manifests)
-                .unwrap();
+        let duplicate_path = setup_command_with_manifests(
+            &store,
+            &home,
+            &state,
+            None,
+            &duplicate_path_manifests,
+            false,
+        )
+        .unwrap();
         assert_eq!(duplicate_path["state"], "modified_choice_required");
 
         let upgrade =
-            setup_command_with_manifests(&store, &home, &state, None, &manifests).unwrap();
+            setup_command_with_manifests(&store, &home, &state, None, &manifests, false).unwrap();
         assert_eq!(upgrade["state"], "preview_ready");
         assert_eq!(upgrade["outdated_count"], 1);
         assert_eq!(upgrade["operation_count"], 4);

@@ -84,6 +84,15 @@ retries with a bound instead of polling in a tight loop.
 
 ## 6. Command experiences
 
+### Home and `setup`
+
+Home separates workflow readiness from optional `agent_integration`. Its current,
+missing, outdated, modified, and unsupported target facts reuse Setup inspection;
+it creates no Plan. `setup --check --json` exposes those exact targets and both
+CLI/Bootstrap versions without preparing a Plan. Standard `setup` still previews
+all detected targets, requiring explicit review and Apply. A local current
+Bootstrap does not establish that the host loaded it into an existing session.
+
 ### `status`
 
 Show state-store health, latest Snapshot age, pending Plans, last Receipt, and recovery state. Do not duplicate the governance report.
@@ -94,12 +103,18 @@ Show Agent coverage as it progresses, then independent Skill count, placement co
 
 ### `report`
 
-Lead with four counts: independent Skills, placements, default exposure, and observed-use coverage. Show the three highest-priority Findings, then category totals. Evidence detail remains behind `report --finding`.
+Lead with four counts: independent Skills, placements, default exposure, and observed-use coverage. Show up to three non-informational Findings, then category totals when review items exist. Evidence detail remains behind `report --finding`.
 
 Agent callers use selector-free `report --json` by default; `--summary` is an
 explicit alias. The compact payload
 contains those four metrics, total Finding count, category totals, and at most
-three complete Finding summaries. Each Finding summary also states the affected
+three non-informational Finding summaries. The additive `overview` states
+`inventory_empty`, `no_review_items`, or `review_available`, with
+informational/review counts and known/explicit Skill-root coverage. Empty or
+informational-only reports offer keeping the current setup, retain usage limits,
+and leave all Findings accessible through pagination or full export. Cached
+Reports missing this overview are rebuilt from the same Snapshot.
+Each Finding summary also states the affected
 Agent IDs, whether it has a deterministic next step (`plan_available`,
 `review_required`, `blocked`, or `read_only`), and whether an applied change can
 be undone (`undo_after_apply`, `manual_only`, or `not_governable`). These are

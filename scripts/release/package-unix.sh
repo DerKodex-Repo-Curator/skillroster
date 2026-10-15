@@ -47,7 +47,6 @@ cp LICENSE "$stage/LICENSE"
 scripts/release/smoke.sh "$stage/skillroster"
 tar -C "$dist_root" -czf "$archive" "$name"
 rm -rf "$stage"
-trap - EXIT
 
 if ! tar -xOf "$archive" "$name/LICENSE" | cmp - LICENSE; then
   echo "release archive does not contain the repository LICENSE" >&2
@@ -57,6 +56,12 @@ if ! tar -xOf "$archive" "$name/README.md" | cmp - "$archive_readme"; then
   echo "release archive README differs from the version-neutral source" >&2
   exit 1
 fi
+
+mkdir "$stage"
+tar -xzf "$archive" -C "$stage"
+python3 scripts/release/first-use.py "$stage/$name/skillroster"
+cleanup_stage
+trap - EXIT
 
 if command -v sha256sum >/dev/null 2>&1; then
   (cd "$dist_root" && sha256sum "${name}.tar.gz" > "${name}.tar.gz.sha256")

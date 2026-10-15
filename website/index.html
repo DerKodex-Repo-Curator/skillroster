@@ -1444,8 +1444,8 @@ footer { overflow: hidden; }
       <span class="num reveal">06 — Install</span>
       <h2 class="reveal reveal-d1">One binary.<br>Ready in <em>seconds</em>.</h2>
       <p class="reveal reveal-d2">Rust 1.85+ from source, a source-building Homebrew tap,
-      or verified release archives. Then refresh the snapshot and set up the bootstrap
-      skill — the agent takes it from there.</p>
+      or verified release archives. Inspect directly with the CLI, or review the optional
+      Bootstrap setup to use it through your agent.</p>
     </div>
     <div class="install-grid reveal">
       <div class="install-card spot">
@@ -1472,7 +1472,10 @@ footer { overflow: hidden; }
     <p class="install-alt reveal">
       RELEASE ARCHIVES WITH SHA256 CHECKSUMS →
       <a href="https://github.com/tt-a1i/skillroster/releases" rel="noopener">github.com/tt-a1i/skillroster/releases</a><br>
-      AFTER INSTALL → skillroster scan --summary --json &amp;&amp; skillroster setup --json
+      CLI CHECK → skillroster scan --summary &amp;&amp; skillroster report<br>
+      OPTIONAL AGENT SETUP → skillroster setup --json · REVIEW TARGETS BEFORE APPLY<br>
+      PUBLIC: CLI v1.8.45 / BOOTSTRAP 1.8.29 · SOURCE CANDIDATE: CLI v1.8.46 / BOOTSTRAP 1.8.50<br>
+      <a href="https://github.com/tt-a1i/skillroster/blob/main/docs/installation.md" rel="noopener">Candidate improvements and release boundaries</a>
     </p>
   </div>
 </section>
@@ -1496,7 +1499,7 @@ footer { overflow: hidden; }
       </div>
     </div>
     <div class="footer-rule">
-      <span>SOURCE TREE v1.8.45 — RUST 2024 · ONE BINARY · ONE DATABASE · ONE BOOTSTRAP SKILL</span>
+      <span>SOURCE TREE v1.8.46 — RUST 2024 · ONE BINARY · ONE DATABASE · ONE BOOTSTRAP SKILL</span>
       <span>NO DAEMON · NO CLOUD · NO TELEMETRY</span>
     </div>
   </div>

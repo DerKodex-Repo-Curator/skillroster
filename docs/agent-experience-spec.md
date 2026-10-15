@@ -60,14 +60,21 @@ The Agent selects one primary action from current state:
 | Bootstrap modified | Show affected targets and ask retain/adopt | 保留本地 or 采用当前版 |
 | Bootstrap target unsupported | Explain the preserved link/non-file | 检查目标 |
 
-The Agent never manufactures a problem so that an Apply action exists.
+The Agent never manufactures a problem so that an Apply action exists. Analysis
+requests stop at analysis. Deduplication preserves default exposure; reducing the
+Roster requires its own user goal. With no positive usage evidence, establish
+upcoming-work capabilities and a user-chosen budget before drafting a reduction.
+Name ordering is only a draft basis, and keeping the current Roster completes
+the request when the user chooses it.
 
 The default no-subcommand Home is the Agent's bounded readiness router. It and
 Status share one action-priority decision: recovery, missing-Snapshot Scan,
 invalidated-Snapshot Scan, Ready Plan inspection, missing current-Snapshot
 Report, then no required continuation. Home never calls a stale or unanalyzed
 Snapshot ready, and its human surface prints the same exact argv returned in
-the JSON suggested action.
+the JSON suggested action. Optional `agent_integration` is reported separately;
+Home and `setup --check` create no Setup Plan and do not block CLI use. Local
+Bootstrap status does not establish activation inside a running Agent session.
 
 ## 4. First-screen information
 
@@ -75,7 +82,7 @@ The initial response should fit roughly one conversation viewport. It contains:
 
 1. **One-sentence diagnosis** with only evidence-backed numbers.
 2. **Four core metrics:** independent Skills, placements, default exposure, and observed-use coverage. Usage coverage names sampled, complete, limited, missing-root, and inaccessible Agent counts separately.
-3. **Top three Findings:** fact, impact, and Evidence quality.
+3. **Up to three review Findings:** fact, impact, and Evidence quality. An empty or informational-only Report can end with keeping the current setup; retain scope and usage limits instead of manufacturing problems.
 4. **Impact:** current affected scale for Finding-only diagnosis; current →
    proposed counts and affected Agents only from a validated Plan. Preserve each
    field's unit: source, placement, exposure, relink, and deletion counts are
@@ -286,9 +293,9 @@ Machine results should expose facts, not preformatted prose:
 - typed `suggested_actions` containing argv, mutation status, confirmation requirement, and reason code.
 
 The bounded Summary exposes one read-only `view_finding` action for each of its
-at most three selected Findings. When more Findings exist, the established
-`list_findings` pagination action remains first; direct drilldowns follow in
-Summary order and bind each stable Finding ID without implying Plan or Apply.
+at most three selected Findings. Direct drilldowns bind stable Finding IDs in
+Summary order; optional `list_findings` pagination follows when more exist.
+Action order expresses no user-value ranking and implies neither Plan nor Apply.
 
 Suggested action argv retains any effective `--state-dir`, `--home`, `--root`,
 and `--source-root` overrides so an Agent can execute the transition against

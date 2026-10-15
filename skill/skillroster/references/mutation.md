@@ -2,8 +2,15 @@
 
 ## Setup
 
-Run `skillroster setup --json` to install or upgrade this complete Bootstrap
-package. An exact official older package produces a recoverable Plan. When
+The CLI works independently of Agent integration. Home's `agent_integration`
+reports local Bootstrap files, not activation in an already-running session.
+Use `skillroster setup --check --json` to inspect detected targets and versions
+without creating a Plan. Missing Bootstrap is an optional integration step,
+not a blocker for ordinary CLI use. When the user wants Agent integration,
+run `skillroster setup --json` to preview installation or upgrade of this
+complete package. Show every detected Agent and target before Apply; never
+assume all supported Agents are installed or that detection authorizes setup.
+An exact official older package produces a recoverable Plan. When
 `state` is `modified_choice_required`, show affected Agent targets and ask for
 `retain-local` or `adopt-current`; never choose for the user. Unsupported links
 or non-files remain blocked.

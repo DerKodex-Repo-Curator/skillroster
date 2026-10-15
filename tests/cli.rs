@@ -436,8 +436,8 @@ fn skill_evidence_id(database: &rusqlite::Connection, snapshot_id: &str, skill_i
 
 fn assert_setup_versions(output: &Value) {
     assert_eq!(output["result"]["cli_version"], env!("CARGO_PKG_VERSION"));
-    assert_eq!(output["result"]["bootstrap_content_version"], "1.8.49");
-    assert_eq!(output["result"]["bootstrap_version"], "1.8.49");
+    assert_eq!(output["result"]["bootstrap_content_version"], "1.8.50");
+    assert_eq!(output["result"]["bootstrap_version"], "1.8.50");
 }
 
 #[cfg(unix)]
@@ -3306,9 +3306,9 @@ fn finding_list_is_paged_filterable_and_leads_to_evidence() {
     assert_eq!(duplicate_rollup["finding_count"], 30);
     assert_eq!(duplicate_rollup["affected_skill_count"], 30);
     assert_eq!(duplicate_rollup["affected_placement_count"], 60);
-    assert_eq!(summary["suggested_actions"][0]["action"], "list_findings");
+    assert_eq!(summary["suggested_actions"][3]["action"], "list_findings");
     assert_eq!(
-        summary["suggested_actions"][0]["argv"],
+        summary["suggested_actions"][3]["argv"],
         context_action_argv(
             &home,
             &state,
@@ -3328,13 +3328,7 @@ fn finding_list_is_paged_filterable_and_leads_to_evidence() {
         .as_array()
         .unwrap()
         .iter()
-        .zip(
-            summary["suggested_actions"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .skip(1),
-        )
+        .zip(summary["suggested_actions"].as_array().unwrap().iter())
     {
         let finding_id = finding["id"].as_str().unwrap();
         assert_eq!(suggested_action["action"], "view_finding");
@@ -5323,7 +5317,7 @@ fn setup_requires_a_choice_before_replacing_a_modified_bootstrap_skill() {
     assert_setup_versions(&current);
     assert_eq!(
         current["result"]["targets"][0]["installed_version"],
-        "1.8.49"
+        "1.8.50"
     );
 
     let undone = json_output(&run(
@@ -5436,7 +5430,7 @@ fn setup_upgrades_released_bootstrap_packages_and_undo_restores_every_file() {
         ),
         (
             "1.8.29",
-            3,
+            4,
             [
                 ("SKILL.md", include_str!("fixtures/bootstrap-v1.8.29.md")),
                 (
@@ -5446,6 +5440,25 @@ fn setup_upgrades_released_bootstrap_packages_and_undo_restores_every_file() {
                 (
                     "references/governance.md",
                     include_str!("fixtures/bootstrap-governance-v1.8.29.md"),
+                ),
+                (
+                    "references/mutation.md",
+                    include_str!("fixtures/bootstrap-mutation-v1.8.29.md"),
+                ),
+            ],
+        ),
+        (
+            "1.8.49",
+            3,
+            [
+                ("SKILL.md", include_str!("fixtures/bootstrap-v1.8.49.md")),
+                (
+                    "references/routing.md",
+                    include_str!("fixtures/bootstrap-routing-v1.8.49.md"),
+                ),
+                (
+                    "references/governance.md",
+                    include_str!("fixtures/bootstrap-governance-v1.8.49.md"),
                 ),
                 (
                     "references/mutation.md",
@@ -5526,7 +5539,7 @@ fn setup_upgrades_released_bootstrap_packages_and_undo_restores_every_file() {
         assert_eq!(current["result"]["state"], "up_to_date");
         assert_eq!(
             current["result"]["targets"][0]["installed_version"],
-            "1.8.49"
+            "1.8.50"
         );
 
         let receipt_id = applied["result"]["receipt_id"].as_str().unwrap();
@@ -8902,6 +8915,12 @@ fn exact_duplicate_finding_prepares_library_plan_from_semantic_choices() {
     assert!(plan["result"].get("operations").is_none());
     assert!(plan["result"].get("library_changes").is_none());
     assert_eq!(plan["result"]["change_summary"]["operation_count"], 101);
+    let item = &plan["result"]["impact"]["items"][0];
+    assert_eq!(item["skill_name"], "shared");
+    assert_eq!(item["replacement_path_count"], 50);
+    assert_eq!(item["replacement_paths"].as_array().unwrap().len(), 10);
+    assert_eq!(item["replacement_paths_truncated"], true);
+    assert_eq!(item["affected_agents"], json!(["claude-code", "codex"]));
     assert_eq!(plan["result"]["affected"]["placement_count"], 51);
     assert_eq!(plan["result"]["affected"]["agent_count"], 2);
     assert_eq!(

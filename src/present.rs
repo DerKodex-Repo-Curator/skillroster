@@ -413,6 +413,81 @@ fn report(value: &Value, lines: &mut Vec<String>, width: usize) {
         "Observed-use Agents",
         text(value, "observed_use_agent_count"),
     );
+    let overview_state = value.pointer("/overview/state").and_then(Value::as_str);
+    if matches!(overview_state, Some("inventory_empty" | "no_review_items")) {
+        lines.push(String::new());
+        lines.push(if overview_state == Some("inventory_empty") {
+            "No Skills found in the checked roots.".into()
+        } else {
+            "No review items in checked roots. Keep the current setup.".into()
+        });
+        if let Some(roots) = value.pointer("/overview/skill_roots") {
+            fact_items(
+                lines,
+                "Skill roots",
+                vec![
+                    format!("{} included", text(roots, "included")),
+                    format!("{} missing", text(roots, "missing")),
+                    format!("{} excluded", text(roots, "excluded")),
+                    format!("{} inaccessible", text(roots, "inaccessible")),
+                    format!("{} bounded", text(roots, "bounded")),
+                ],
+                width,
+            );
+        }
+        fact(
+            lines,
+            "Usage coverage",
+            format!(
+                "{} sampled · {} complete Agents",
+                value
+                    .pointer("/session_coverage/sampled_agents")
+                    .unwrap_or(&Value::Null),
+                value
+                    .pointer("/session_coverage/complete_agents")
+                    .unwrap_or(&Value::Null)
+            ),
+        );
+        lines.push("Missing usage evidence does not mean a Skill is unused.".into());
+        if let Some(coverage) = value.get("session_coverage") {
+            fact(
+                lines,
+                "Coverage limits",
+                format!(
+                    "limited {}/{} · missing {}/{}",
+                    text(coverage, "limited_agents"),
+                    text(coverage, "supported_agents"),
+                    text(coverage, "missing_root_agents"),
+                    text(coverage, "supported_agents")
+                ),
+            );
+            if coverage["inaccessible_agents"].as_u64().unwrap_or_default() > 0 {
+                fact(
+                    lines,
+                    "Inaccessible",
+                    format!(
+                        "{}/{}",
+                        text(coverage, "inaccessible_agents"),
+                        text(coverage, "supported_agents")
+                    ),
+                );
+            }
+        }
+        fact(
+            lines,
+            "Context Findings",
+            value
+                .pointer("/overview/informational_finding_count")
+                .unwrap_or(&Value::Null),
+        );
+        lines.push("Inspect context: report --findings".into());
+        lines.push("Add a Skill root: scan --root AGENT=PATH".into());
+        lines.extend(summary(
+            "Read-only · no Agent files changed",
+            "No cleanup Plan is needed from these observations",
+        ));
+        return;
+    }
     if let Some(coverage) = value.get("session_coverage") {
         fact(
             lines,
@@ -453,9 +528,13 @@ fn report(value: &Value, lines: &mut Vec<String>, width: usize) {
         );
     }
     lines.push(String::new());
-    lines.push("  Top Findings".into());
+    lines.push("  Findings to review".into());
     if let Some(findings) = value.get("findings").and_then(Value::as_array) {
-        for finding in findings.iter().take(3) {
+        for finding in findings
+            .iter()
+            .filter(|finding| finding["severity"] != "info")
+            .take(3)
+        {
             lines.push(format!(
                 "  {:<7} {:<10} {}",
                 text(finding, "severity"),
@@ -1214,6 +1293,78 @@ fn find(value: &Value, lines: &mut Vec<String>, width: usize) {
 
 fn plan(value: &Value, lines: &mut Vec<String>, width: usize) {
     fact(lines, "Plan", text(value, "plan_id"));
+    if let Some(items) = value.pointer("/impact/items").and_then(Value::as_array) {
+        for item in items
+            .iter()
+            .filter(|item| item.get("skill_name").is_some())
+            .take(3)
+        {
+            fact(
+                lines,
+                "Skill",
+                middle_truncate(&text(item, "skill_name"), width.saturating_sub(25)),
+            );
+            let before = item.pointer("/before/canonical_path");
+            let after = item.pointer("/after/canonical_path");
+            if before != after {
+                fact(
+                    lines,
+                    "Move source from",
+                    middle_truncate(
+                        before.and_then(Value::as_str).unwrap_or("unknown"),
+                        width.saturating_sub(25),
+                    ),
+                );
+            }
+            fact(
+                lines,
+                "Keep source at",
+                middle_truncate(
+                    after.and_then(Value::as_str).unwrap_or("unknown"),
+                    width.saturating_sub(25),
+                ),
+            );
+            let paths = item
+                .get("replacement_paths")
+                .and_then(Value::as_array)
+                .map(Vec::as_slice)
+                .unwrap_or_default();
+            for path in paths.iter().take(3).filter_map(Value::as_str) {
+                fact(
+                    lines,
+                    "Replace with link",
+                    middle_truncate(path, width.saturating_sub(25)),
+                );
+            }
+            let remaining = item["replacement_path_count"]
+                .as_u64()
+                .unwrap_or_default()
+                .saturating_sub(paths.len().min(3) as u64);
+            if remaining > 0 {
+                fact(
+                    lines,
+                    "Other replacements",
+                    format!("{remaining}; paths in full Plan"),
+                );
+            }
+            fact_items(
+                lines,
+                "Affected Agents",
+                item["affected_agents"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                    .map(core_agent_label)
+                    .map(str::to_owned)
+                    .collect(),
+                width,
+            );
+        }
+        if items.len() > 3 {
+            fact(lines, "Other Skills", "See impact.items for more Skills");
+        }
+    }
     let operation_count = value
         .pointer("/change_summary/operation_count")
         .and_then(Value::as_u64)
@@ -1510,6 +1661,14 @@ fn plan(value: &Value, lines: &mut Vec<String>, width: usize) {
         if !previews.is_empty() {
             fact_items(lines, "Core preview", previews, width);
         }
+        if selection["stable_fallback_core_count"]
+            .as_u64()
+            .unwrap_or_default()
+            > 0
+        {
+            fact(lines, "Fallback basis", "name order, not usefulness");
+            lines.push("Choose Core Skills for upcoming work, or keep this Roster.".into());
+        }
     }
     if value
         .pointer("/uncertainty/review_required")
@@ -1526,7 +1685,7 @@ fn plan(value: &Value, lines: &mut Vec<String>, width: usize) {
         };
         fact(lines, "Review required", review);
     }
-    fact(lines, "Risk", risk);
+    fact(lines, "Risk", &risk);
     fact(lines, "Reversible", text(value, "reversible"));
     fact(
         lines,
@@ -1553,6 +1712,10 @@ fn plan(value: &Value, lines: &mut Vec<String>, width: usize) {
         "Preview only · no files changed",
         "Review the Plan before Apply",
     ));
+    if risk == "library_governance" {
+        lines.push("Existing exposure is preserved.".into());
+        lines.push("Replaced copies are kept for Receipt-based Undo.".into());
+    }
 }
 
 fn core_reason_label(reason: &str) -> &str {
@@ -1709,6 +1872,10 @@ fn setup(value: &Value, lines: &mut Vec<String>, width: usize) {
         "preview_ready" => lines.extend(summary(
             "Preview only · no files changed",
             "Review the recoverable Plan before Apply",
+        )),
+        "setup_available" => lines.extend(summary(
+            "Inspection only · no Plan or Agent files changed",
+            "Optional: run setup to preview these exact targets",
         )),
         "modified_choice_required" => lines.extend(summary(
             "Blocked · local bootstrap changes need a decision",
@@ -1884,6 +2051,19 @@ fn source_root(value: &Value, lines: &mut Vec<String>) {
 
 fn home(value: &Value, lines: &mut Vec<String>, width: usize) {
     fact(lines, "State", text(value, "state"));
+    fact(lines, "CLI", "available");
+    if let Some(integration) = value.get("agent_integration") {
+        fact(lines, "Agent Bootstrap", text(integration, "state"));
+        if integration["state"] == "up_to_date" {
+            fact(
+                lines,
+                "Bootstrap content",
+                text(integration, "bootstrap_content_version"),
+            );
+        } else {
+            lines.push("Optional Agent integration: inspect with setup --check.".into());
+        }
+    }
     fact(lines, "Snapshot state", text(value, "snapshot_state"));
     fact(lines, "Recovery", text(value, "recovery_state"));
     lines.push(String::new());
@@ -2451,6 +2631,58 @@ mod tests {
             output.lines().all(|line| display_width(line) <= 80),
             "line exceeded 80 columns:\n{output}"
         );
+    }
+
+    #[test]
+    fn quiet_report_and_duplicate_plan_preserve_choices_at_narrow_widths() {
+        let quiet = json!({
+            "skill_count": 3, "placement_count": 3, "default_exposure": 3,
+            "overview": {"state": "no_review_items", "informational_finding_count": 4,
+                "skill_roots": {"included": 1, "missing": 7, "excluded": 0, "inaccessible": 0, "bounded": 0}},
+            "session_coverage": {"sampled_agents": 0, "complete_agents": 0, "limited_agents": 0,
+                "missing_root_agents": 7, "inaccessible_agents": 1, "supported_agents": 8}
+        });
+        let duplicate = json!({
+            "risk": "library_governance", "impact": {"items": [{
+                "skill_name": "比较长的技能名称需要在窄终端清楚显示完整证据仍在JSON中",
+                "before": {"canonical_path": "/skills/claude/review"},
+                "after": {"canonical_path": "/skills/claude/review"},
+                "replacement_paths": ["/skills/codex/review"], "replacement_path_count": 50,
+                "affected_agents": ["claude-code", "codex"]
+            }]}
+        });
+        for width in [60, 80, 120] {
+            let options = RenderOptions {
+                width,
+                styled: false,
+            };
+            let quiet = render("report", &quiet, options);
+            assert!(quiet.contains("Keep the current setup"));
+            assert!(quiet.contains("Inaccessible           1/8"));
+            assert!(!quiet.contains("Findings to review"));
+            let plan = render("plan", &duplicate, options);
+            for expected in [
+                "Keep source at",
+                "Replace with link",
+                "/skills/claude/review",
+                "/skills/codex/review",
+                "49; paths in full Plan",
+                "Receipt-based Undo",
+            ] {
+                assert!(plan.contains(expected), "{plan}");
+            }
+            for output in [&quiet, &plan] {
+                assert!(
+                    output.lines().all(|line| display_width(line) <= width),
+                    "{output}\nWidth {width}: {:?}",
+                    output
+                        .lines()
+                        .filter(|line| display_width(line) > width)
+                        .map(|line| (line, display_width(line)))
+                        .collect::<Vec<_>>()
+                );
+            }
+        }
     }
 
     #[test]

@@ -1221,7 +1221,7 @@ fn plain_cli_preserves_report_contract_at_sixty_eighty_and_one_twenty_columns() 
             "Placements",
             "Default exposure",
             "Observed-use Agents",
-            "Top Findings",
+            "Findings to review",
             "Category totals",
             "Read-only · no Agent files changed",
         ] {

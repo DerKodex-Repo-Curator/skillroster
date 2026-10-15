@@ -29,6 +29,16 @@ release version in that source.
    archive binary through the synthetic retained-ID collision regression before
    the archive is created. Review all five successful jobs.
 
+Both packagers also extract the completed archive, install its executable into
+an isolated temporary PATH, and run `scripts/release/first-use.py`. This checks
+the CLI and bundled Bootstrap versions against the candidate source, replays
+empty/small/duplicate/large inventories, verifies informational Finding access,
+checks that Home/Setup inspection creates no Plan, and installs/verifies/undoes
+the exact Bootstrap package. All files and state are synthetic and temporary.
+Repeat this check against the downloaded public binary before describing the
+new release as delivered; a source build or matching version string alone is
+insufficient. Update public Formula/docs only after actual publication.
+
 Candidate artifacts expire after 14 days. The workflow token has only
 `contents: read`; checkout credentials are not persisted.
 

@@ -25,8 +25,11 @@ with tempfile.TemporaryDirectory(prefix="skillroster-first-use-") as directory:
     installed = install / binary.name
     shutil.copy2(binary, installed)
     env = dict(os.environ, PATH=str(install) + os.pathsep + os.environ.get("PATH", ""))
-    assert Path(shutil.which(binary.name, path=env["PATH"])).resolve() == installed.resolve()
-    version = subprocess.check_output([binary.name, "--version"], env=env, text=True).strip()
+    selected = Path(shutil.which(binary.name, path=env["PATH"])).resolve()
+    assert selected == installed.resolve()
+    # Bind the selected PATH entry explicitly; Windows process lookup does not
+    # use a child's env PATH to resolve an unqualified executable name.
+    version = subprocess.check_output([str(selected), "--version"], env=env, text=True).strip()
     assert version == f"skillroster {cli_version}", version
 
     for scenario in ("empty", "small", "duplicate", "large"):
@@ -38,7 +41,7 @@ with tempfile.TemporaryDirectory(prefix="skillroster-first-use-") as directory:
 
         def run(*args, request=None):
             output = subprocess.run(
-                [binary.name, "--home", str(home), "--state-dir", str(state), "--json", *args],
+                [str(selected), "--home", str(home), "--state-dir", str(state), "--json", *args],
                 input=None if request is None else json.dumps(request),
                 env=scenario_env, text=True, capture_output=True, check=True,
             )
